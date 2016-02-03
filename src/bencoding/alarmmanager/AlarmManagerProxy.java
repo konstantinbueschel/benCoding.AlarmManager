@@ -67,6 +67,7 @@ public class AlarmManagerProxy extends KrollProxy {
 
 	private Intent createAlarmNotifyIntent(KrollDict args,int requestCode){
 		int notificationIcon = 0;
+		int largeNotificationIcon = 0;
 		String contentTitle = "";
 		String contentText = "";
 		String notificationSound = "";
@@ -98,7 +99,22 @@ public class AlarmManagerProxy extends KrollProxy {
 				}
 			}
 		}
-		
+
+		if (args.containsKey("largeIcon")) {
+            Object icon = args.get("largeIcon");
+            if (icon instanceof Number) {
+                largeNotificationIcon = ((Number)icon).intValue();
+            } else {
+                String iconUrl = TiConvert.toString(icon);
+                String iconFullUrl = resolveUrl(null, iconUrl);
+                largeNotificationIcon = TiUIHelper.getResourceId(iconFullUrl);
+                if (largeNotificationIcon == 0) {
+                    utils.debugLog("No large image found for " + iconUrl);
+                    utils.debugLog("Default large icon will be used");
+                }
+            }
+        }
+
 		if (args.containsKey(TiC.PROPERTY_SOUND)){
 		    notificationSound = resolveUrl(null, TiConvert.toString(args, TiC.PROPERTY_SOUND));
 		}
@@ -109,6 +125,8 @@ public class AlarmManagerProxy extends KrollProxy {
 		intent.putExtra("notification_msg", contentText);
 		intent.putExtra("notification_has_icon", (notificationIcon!=0));
 		intent.putExtra("notification_icon", notificationIcon);
+		intent.putExtra("notification_has_large_icon", (largeNotificationIcon!=0));
+        intent.putExtra("notification_large_icon", largeNotificationIcon);
 		intent.putExtra("notification_sound", notificationSound);
 		intent.putExtra("notification_play_sound", playSound);		
 		intent.putExtra("notification_vibrate", doVibrate);
@@ -354,7 +372,8 @@ public class AlarmManagerProxy extends KrollProxy {
 
 		//Get the requestCode if provided, if none provided
 		//we use 192837 for backwards compatibility
-		int requestCode = args.optInt("requestCode", AlarmmanagerModule.DEFAULT_REQUEST_CODE);	
+		int requestCode = args.optInt("requestCode", AlarmmanagerModule.DEFAULT_REQUEST_CODE);
+        boolean shouldWakeUp = args.optBoolean("shouldWakeUp", false);
 		
         String DATE_FORMAT = "yyyy-MM-dd HH:mm:ss";
         SimpleDateFormat sdf = new SimpleDateFormat(DATE_FORMAT);
@@ -362,6 +381,9 @@ public class AlarmManagerProxy extends KrollProxy {
 
 		AlarmManager am = (AlarmManager) TiApplication.getInstance().getApplicationContext().getSystemService(TiApplication.ALARM_SERVICE);
 		Intent intent = createAlarmServiceIntent(args);
+
+        intent.putExtra("notification_request_code", requestCode);
+        intent.putExtra("should_wake_up", shouldWakeUp);
 
 		if(isRepeating){
 			utils.debugLog("Setting Alarm to repeat at frequency " + repeatingFrequency);
