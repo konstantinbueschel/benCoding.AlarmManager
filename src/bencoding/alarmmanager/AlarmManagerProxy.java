@@ -304,6 +304,11 @@ public class AlarmManagerProxy extends KrollProxy {
 		if(hasInterval){
 			intent.putExtra("alarm_service_interval", intervalValue);
 		}
+		
+		if((args.containsKeyAndNotNull("customData"))) {
+			String customData = (String)args.get("customData");
+			intent.putExtra("customData", customData);
+		}
 
 		utils.debugLog("created alarm service intent for " + serviceName
             + "(forceRestart: " 
@@ -334,6 +339,7 @@ public class AlarmManagerProxy extends KrollProxy {
 		Intent intent = createAlarmServiceIntent(args);
 		PendingIntent sender = PendingIntent.getBroadcast( TiApplication.getInstance().getApplicationContext(), intentRequestCode, intent,  PendingIntent.FLAG_UPDATE_CURRENT );
 		am.cancel(sender);	
+		sender.cancel();
 		utils.infoLog("Alarm Service Canceled");		
 	}
 	@Kroll.method

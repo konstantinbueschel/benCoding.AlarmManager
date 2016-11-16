@@ -7,6 +7,9 @@ This project can be found on github at [https://github.com/benbahrenburg/benCodi
 <h2>IMPORTANT</h2>
 This module, provides access to the Android AlarmManager, which works very differently then iOS Local Notifications.  Please read the Android Docs to understand the limitations and differences between these to very different approaches. Android docs are available [here](http://developer.android.com/reference/android/app/AlarmManager.html).
 
+<h2>ABOUT ALARMS</h2>
+Here you will find two ways to create alarms: *addAlarmNotification* and *addAlarmService*. The first will create a notification to be triggered at certain date/time *but* if the device is restarted those notifications will be lost. If you need those notifications, use the service method (maybe you could need the [bootReceiver](https://github.com/benbahrenburg/benCoding.Android.Tools/blob/master/documentation/bootreceiver.md) tool). 
+
 <h2>SUPPORT</h2>
 No project, "how do I", or "can it" support is provided for this module. The code is available for your reference and usage. If you find an issue and want to contribute Pull Requests are appreciated.  If you are interested in being a contributor and helping with community support please contact me via Twitter.
 
@@ -83,6 +86,7 @@ You can create an AlarmService using the below properties:
 * <b>interval</b> - (Optional) The value used to create an interval service. This value must be in milliseconds.
 * <b>forceRestart</b> - (Optional) Force the service to restart if it is already running.
 * <b>repeat</b> - (Optional) Used to schedule a repeating alarm. You can provide a millisecond value or use the words hourly, daily, monthly, yearly.
+* <b>customData</b> - (Optional) (string) Used to pass custom text data to the service ("[]" if empty)
 
 Please note if you omit the day, month, and year parameters the module will assume you mean to make the alarm effective from today and add the number of minutes provided.
 
@@ -176,7 +180,9 @@ ew9.show();
 alarmManager.addAlarmService({
 	//The full name for the service to be called. Find this in your AndroidManifest.xml Titanium creates
 	service:'com.appworkbench.alarmtest.TestserviceService', 		
-	minute:2 //Set the number of minutes until the alarm should go off
+	minute:2, //Set the number of minutes until the alarm should go off
+	customData: JSON.stringify(['item1','item2']) // pass JSON string to service
+	// use JSON.parse(Ti.Android.currentService.getIntent().getStringExtra('customData')) to get the JSON inside the service
 });	
 var ew5 = Ti.UI.createAlertDialog({
 	title:'Info', message:"The Service provided will be started in about 2 minutes",
