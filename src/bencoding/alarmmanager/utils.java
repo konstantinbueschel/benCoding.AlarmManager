@@ -9,6 +9,7 @@ package bencoding.alarmmanager;
 import org.appcelerator.kroll.common.Log;
 
 public class utils {
+
 	public static final long YEARLY_MILLISECONDS =  31536000000L;
 	public static final long MONTHLY_MILLISECONDS =  2628000000L;
 	public static final long WEEKLY_MILLISECONDS = 604800000L;
@@ -18,24 +19,34 @@ public class utils {
 	private static boolean _writeToLog = false;
 
 	public static boolean isEmptyString(String str) {
-		return !(str != null && str.trim().length() > 0);
+		
+        return !(str != null && str.trim().length() > 0);
 	}
+
     public static void setDebug(boolean value){
-    	_writeToLog = value;
+    	
+        _writeToLog = value;
     }
     
     public static void errorLog(String message){
-    	Log.e(AlarmmanagerModule.MODULE_FULL_NAME, message);
+    	
+        Log.e(AlarmmanagerModule.MODULE_FULL_NAME, message);
     }
   
     public static void errorLog(Exception message){
-    	Log.e(AlarmmanagerModule.MODULE_FULL_NAME, message.getMessage());
+    	
+        Log.e(AlarmmanagerModule.MODULE_FULL_NAME, message.getMessage());
     }
+
     public static void infoLog(String message){
-    	Log.i(AlarmmanagerModule.MODULE_FULL_NAME, message);
+    	
+        Log.i(AlarmmanagerModule.MODULE_FULL_NAME, message);
     }
+
     public static void debugLog(String logMessage){
-    	if(_writeToLog){
+    	
+        if (_writeToLog) {
+
     		Log.d(AlarmmanagerModule.MODULE_FULL_NAME, logMessage);
     	} 
     }

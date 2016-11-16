@@ -20,29 +20,31 @@ public class AlarmmanagerModule extends KrollModule
 	public static final String MODULE_FULL_NAME = "bencoding.AlarmManager";
 	public static String rootActivityClassName = "";
 	
-	public AlarmmanagerModule()
-	{
+	public AlarmmanagerModule() {
+		
 		super();
 	}
+
 	@Kroll.method
-	public void disableLogging()
-	{
+	public void disableLogging() {
+		
 		utils.setDebug(false);
 	}
+
 	@Kroll.method
-	public void enableLogging()
-	{
+	public void enableLogging() {
+		
 		utils.setDebug(true);
 	}
     
     @Override
-	public void onStart(Activity activity) 
-	{
+	public void onStart(Activity activity)  {
+
 		// This method is called when the module is loaded and the root context is started
 		rootActivityClassName = TiApplication.getInstance().getApplicationContext().getPackageName() + "." + TiApplication.getAppRootOrCurrentActivity().getClass().getSimpleName();
+        
         utils.debugLog("onStart rootActivityClassName = " + rootActivityClassName);
 		
 		super.onStart(activity);
 	}
 }
-
