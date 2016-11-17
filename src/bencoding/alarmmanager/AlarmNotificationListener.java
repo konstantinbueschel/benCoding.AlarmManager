@@ -156,16 +156,18 @@ public class AlarmNotificationListener extends BroadcastReceiver {
         Intent intent = new Intent(TiApplication.getInstance().getApplicationContext(), AlarmNotificationListener.class);
         
         // Use the same extras as the original notification
-    	intent.putExtras(bundle);
+        intent.putExtras(bundle);
 
-    	// Update date and time by repeat interval (in milliseconds)
-		int day = bundle.getInt("notification_day");
-		int month = bundle.getInt("notification_month");
-		int year = bundle.getInt("notification_year");
-		int hour = bundle.getInt("notification_hour");
-		int minute = bundle.getInt("notification_minute");
-		int second = bundle.getInt("notification_second");
-		
+        // Update date and time by repeat interval (in milliseconds)
+        int day = bundle.getInt("notification_day");
+        int month = bundle.getInt("notification_month");
+        int year = bundle.getInt("notification_year");
+        int hour = bundle.getInt("notification_hour");
+        int minute = bundle.getInt("notification_minute");
+        int second = bundle.getInt("notification_second");
+        
+        boolean deliverExact = bundle.getBoolean("notification_deliver_exact", false);
+
         Calendar cal = new GregorianCalendar(year, month, day);
         
         cal.add(Calendar.HOUR_OF_DAY, hour);
@@ -198,14 +200,16 @@ public class AlarmNotificationListener extends BroadcastReceiver {
         //Create the Alarm Manager
         AlarmManager am = (AlarmManager) TiApplication.getInstance().getApplicationContext().getSystemService(TiApplication.ALARM_SERVICE);
 
-		//Create the Alarm Manager
-		AlarmManager am = (AlarmManager) TiApplication.getInstance().getApplicationContext()
-			.getSystemService(TiApplication.ALARM_SERVICE);
+        PendingIntent sender = PendingIntent.getBroadcast( TiApplication.getInstance().getApplicationContext(), requestCode, intent,  PendingIntent.FLAG_UPDATE_CURRENT );
 
-		PendingIntent sender = PendingIntent.getBroadcast( TiApplication.getInstance().getApplicationContext(),
-			requestCode, intent,  PendingIntent.FLAG_UPDATE_CURRENT );
+        if (android.os.Build.VERSION.SDK_INT >= 19 && deliverExact) {
 
-		am.set(AlarmManager.RTC_WAKEUP, ms, sender);
+            am.setExact(AlarmManager.RTC_WAKEUP, ms, sender);
+        }
+        else {
+
+            am.set(AlarmManager.RTC_WAKEUP, ms, sender);    
+        }
     }
 
     private NotificationCompat.Builder createNotifyFlags(NotificationCompat.Builder notification, boolean playSound, boolean hasCustomSound, String soundPath, boolean doVibrate, boolean showLights){

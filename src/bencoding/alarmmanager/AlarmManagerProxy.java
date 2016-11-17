@@ -164,6 +164,7 @@ public class AlarmManagerProxy extends KrollProxy {
 		intent.putExtra("notification_requestcode", requestCode);
 		intent.putExtra("notification_root_classname", AlarmmanagerModule.rootActivityClassName);
 		intent.putExtra("notification_request_code", requestCode);
+		intent.putExtra("notification_deliver_exact", args.optBoolean("deliverExact", false));
 
 		// As of API 19 setRepeating == setInexactRepeating, see also:
 		// http://developer.android.com/reference/android/app/AlarmManager.html#setRepeating(int, long, long, android.app.PendingIntent)
@@ -344,7 +345,8 @@ public class AlarmManagerProxy extends KrollProxy {
 		//Get the requestCode if provided, if none provided
 		//we use 192837 for backwards compatibility
 		int requestCode = args.optInt("requestCode", AlarmmanagerModule.DEFAULT_REQUEST_CODE);
-								
+		boolean deliverExact = args.optBoolean("deliverExact", false);
+
         String DATE_FORMAT = "yyyy-MM-dd HH:mm:ss";
         SimpleDateFormat sdf = new SimpleDateFormat(DATE_FORMAT);
 
@@ -364,10 +366,19 @@ public class AlarmManagerProxy extends KrollProxy {
 			am.setRepeating(AlarmManager.RTC_WAKEUP, calendar.getTimeInMillis(), repeatingFrequency, sender);
 		}
 		else {
-			
-			utils.debugLog("Setting Alarm for a single run");
+		
+			if (android.os.Build.VERSION.SDK_INT >= 19 && deliverExact) {
 
-			am.set(AlarmManager.RTC_WAKEUP, calendar.getTimeInMillis(), sender);
+				utils.debugLog("Setting EXACT Alarm for a single run");
+
+				am.setExact(AlarmManager.RTC_WAKEUP, calendar.getTimeInMillis(), sender);
+			}
+			else {
+
+				utils.debugLog("Setting Alarm for a single run");
+
+				am.set(AlarmManager.RTC_WAKEUP, calendar.getTimeInMillis(), sender);	
+			}
 		}
 
 		utils.infoLog("Alarm Notification Created");
