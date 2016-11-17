@@ -602,33 +602,4 @@ public class AlarmManagerProxy extends KrollProxy {
 			AlarmmanagerModule.rootActivityClassName = (String)className;
 		}
 	}
-
-	@Kroll.method
-	public Array <HashMap> getActiveNotifications() {
-
-		if (android.os.Build.VERSION.SDK_INT >= 23) {
-
-			NotificationManager notificationManager = (NotificationManager) TiApplication.getInstance().getSystemService(TiApplication.NOTIFICATION_SERVICE);
-
-			// TODO: implement logic to convert native objects into javascript objects
-			// notificationManager.getActiveNotifications()
-
-			return [];
-		}		
-
-		return [];
-	}
-
-	@Kroll.method
-	public boolean areNotificationsEnabled() {
-
-		if (android.os.Build.VERSION.SDK_INT >= 24) {
-
-			NotificationManager notificationManager = (NotificationManager) TiApplication.getInstance().getSystemService(TiApplication.NOTIFICATION_SERVICE);
-
-			return notificationManager.areNotificationsEnabled();
-		}
-
-		return true;
-	}
 }
