@@ -6,36 +6,41 @@
  */
 package bencoding.alarmmanager;
 
+
 import org.appcelerator.titanium.TiApplication;
 
 import android.app.ActivityManager;
 import android.app.ActivityManager.RunningServiceInfo;
+
 import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
+
 import android.os.Bundle;
 import android.os.PowerManager;
 
 public class AlarmServiceListener  extends BroadcastReceiver {
 
-	private boolean isServiceRunning(Context context, String serviceName) {
+  private boolean isServiceRunning(Context context, String serviceName) {
 
-		ActivityManager manager = (ActivityManager) context.getSystemService(Context.ACTIVITY_SERVICE);
+    ActivityManager manager = (ActivityManager) context.getSystemService(Context.ACTIVITY_SERVICE);
 
-		for (RunningServiceInfo service : manager.getRunningServices(Integer.MAX_VALUE))
-			if (serviceName.equals(service.service.getClassName()))
-				return true;
+    for (RunningServiceInfo service : manager.getRunningServices(Integer.MAX_VALUE))
+      if (serviceName.equals(service.service.getClassName()))
+        return true;
       
-		return false;
-	}
+    return false;
+  }
 
-	@Override
+  @Override
   public void onReceive(Context context, Intent intent) {
 
-	  utils.debugLog("In Alarm Service Listener");
-  	
+    utils.debugLog("Received alarm service listener event");
+    
     Bundle bundle = intent.getExtras();
+    
     String fullServiceName = bundle.getString("alarm_service_name");
+    
     boolean forceRestart = bundle.getBoolean("alarm_service_force_restart",false);
     boolean hasInterval = bundle.getBoolean("alarm_service_has_interval",false);
     boolean shouldWakeUp = bundle.getBoolean("should_wake_up", false);
@@ -44,55 +49,55 @@ public class AlarmServiceListener  extends BroadcastReceiver {
     utils.debugLog("Full Service Name: " + fullServiceName);
 
     if (this.isServiceRunning(context,fullServiceName)) {
-        	
+          
       if (forceRestart) {
-    		
+        
         utils.infoLog("Service is already running, we will stop it then restart");
 
-      	Intent tempIntent = new Intent();
-      	tempIntent.setClassName(TiApplication.getInstance().getApplicationContext(), fullServiceName);
-      	context.stopService(tempIntent);
+        Intent tempIntent = new Intent();
 
-      	utils.infoLog("Service has been stopped");
-    	}
+        tempIntent.setClassName(TiApplication.getInstance().getApplicationContext(), fullServiceName);
+        
+        context.stopService(tempIntent);
+
+        utils.infoLog("Service has been stopped");
+      }
       else {
 
-    		utils.infoLog("Service is already running not need for us to start");
+        utils.infoLog("Service is already running not need for us to start");
 
-    		return;
-    	}
+        return;
+      }
     }
 
-  	Intent serviceIntent = new Intent();
+    Intent serviceIntent = new Intent();
 
-  	serviceIntent.setClassName(TiApplication.getInstance().getApplicationContext(), fullServiceName);
-  	
-    serviceIntent.putExtra("notification_request_code", bundle.getInt("notification_request_code"));
+    serviceIntent.setClassName(TiApplication.getInstance().getApplicationContext(), fullServiceName);    
 
-  	utils.debugLog("Is this an interval service? " + new Boolean(hasInterval).toString());
+    utils.debugLog("Is this an interval service? " + new Boolean(hasInterval).toString());
 
-  	if (hasInterval) {
+    if (hasInterval) {
 
-  		utils.debugLog("Is this an interval amount " + bundle.getLong("alarm_service_interval", 45*60*1000L));
+      utils.debugLog("Is this an interval amount " + bundle.getLong("alarm_service_interval", 45*60*1000L));
 
-  		serviceIntent.putExtra("interval", bundle.getLong("alarm_service_interval", 45*60*1000L)); // Default to 45mins
-  	}
+      serviceIntent.putExtra("interval", bundle.getLong("alarm_service_interval", 45*60*1000L)); // Default to 45mins
+    }
     
     serviceIntent.putExtra("customData",bundle.getString("customData","[]"));
     
     context.startService(serviceIntent);
         
     if (shouldWakeUp) {
-        	
-    	PowerManager powerManager = (PowerManager) context.getSystemService(Context.POWER_SERVICE);
-        	
+          
+      PowerManager powerManager = (PowerManager) context.getSystemService(Context.POWER_SERVICE);
+          
       // could use bright instead so we actually wake the device and we keep it on for a bit after release
-  		PowerManager.WakeLock wl = powerManager.newWakeLock(PowerManager.SCREEN_DIM_WAKE_LOCK | PowerManager.ACQUIRE_CAUSES_WAKEUP | PowerManager.ON_AFTER_RELEASE, "My Tag");
-    		
-  		wl.acquire();
-  		wl.release();
+      PowerManager.WakeLock wl = powerManager.newWakeLock(PowerManager.SCREEN_DIM_WAKE_LOCK | PowerManager.ACQUIRE_CAUSES_WAKEUP | PowerManager.ON_AFTER_RELEASE, "bencoding.AlarmManager");
+        
+      wl.acquire();
+      wl.release();
     }
         
-    utils.infoLog("Alarm Service Started");
+    utils.infoLog("Alarm service should now be running");
   }
 }
