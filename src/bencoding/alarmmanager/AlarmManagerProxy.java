@@ -426,6 +426,26 @@ public class AlarmManagerProxy extends KrollProxy {
 			intent.putExtra("customData", customData);
 		}
 
+		intent.putExtra("alarm_service_request_code", args.optInt("requestCode", AlarmmanagerModule.DEFAULT_REQUEST_CODE));
+        intent.putExtra("alarm_service_should_wake_up", args.optBoolean("shouldWakeUp", false));
+        intent.putExtra("alarm_service_deliver_exact", args.optBoolean("deliverExact", false));
+
+        // As of API 19 setRepeating == setInexactRepeating, see also:
+		// http://developer.android.com/reference/android/app/AlarmManager.html#setRepeating(int, long, long, android.app.PendingIntent)
+		if (android.os.Build.VERSION.SDK_INT >= 19 && hasRepeating(args)) {
+			
+			intent.putExtra("alarm_service_repeat_ms", repeatingFrequency(args));
+			
+			Calendar cal = getFullCalendar(args);
+
+			intent.putExtra("alarm_service_year", cal.get(Calendar.YEAR));
+			intent.putExtra("alarm_service_month", cal.get(Calendar.MONTH));
+			intent.putExtra("alarm_service_day", cal.get(Calendar.DAY_OF_MONTH));
+			intent.putExtra("alarm_service_hour", cal.get(Calendar.HOUR_OF_DAY));
+			intent.putExtra("alarm_service_minute", cal.get(Calendar.MINUTE));
+			intent.putExtra("alarm_service_second", cal.get(Calendar.SECOND));
+		}
+
 		utils.debugLog("created alarm service intent for " + serviceName
             + "(forceRestart: " 
             + (optionIsEnabled(args,"forceRestart") ? "true" : "false")
@@ -516,7 +536,7 @@ public class AlarmManagerProxy extends KrollProxy {
 		//Get the requestCode if provided, if none provided
 		//we use 192837 for backwards compatibility
 		int requestCode = args.optInt("requestCode", AlarmmanagerModule.DEFAULT_REQUEST_CODE);
-        boolean shouldWakeUp = args.optBoolean("shouldWakeUp", false);
+        boolean deliverExact = args.optBoolean("deliverExact", false);
 		
         String DATE_FORMAT = "yyyy-MM-dd HH:mm:ss";
         SimpleDateFormat sdf = new SimpleDateFormat(DATE_FORMAT);
@@ -527,25 +547,28 @@ public class AlarmManagerProxy extends KrollProxy {
 
 		Intent intent = createAlarmServiceIntent(args);
 
-        intent.putExtra("notification_request_code", requestCode);
-        intent.putExtra("should_wake_up", shouldWakeUp);
+		PendingIntent sender = PendingIntent.getBroadcast( TiApplication.getInstance().getApplicationContext(), requestCode, intent,  PendingIntent.FLAG_UPDATE_CURRENT );
 
-		if (isRepeating) {
+		if (isRepeating && !intent.hasExtra("alarm_service_repeat_ms")) {
 			
 			utils.debugLog("Setting Alarm to repeat at frequency " + repeatingFrequency);
-		    
-		    PendingIntent pendingIntent = PendingIntent.getBroadcast( TiApplication.getInstance().getApplicationContext(), requestCode, intent,  PendingIntent.FLAG_UPDATE_CURRENT );
 
-		    am.setRepeating(AlarmManager.RTC_WAKEUP, calendar.getTimeInMillis(), repeatingFrequency, pendingIntent);
-
+		    am.setRepeating(AlarmManager.RTC_WAKEUP, calendar.getTimeInMillis(), repeatingFrequency, sender);
 		}
 		else {
-			
-			PendingIntent sender = PendingIntent.getBroadcast( TiApplication.getInstance().getApplicationContext(), requestCode, intent,  PendingIntent.FLAG_UPDATE_CURRENT );
 
-			utils.debugLog("Setting Alarm for a single run");
+			if (android.os.Build.VERSION.SDK_INT >= 19 && deliverExact) {
 
-			am.set(AlarmManager.RTC_WAKEUP, calendar.getTimeInMillis(), sender);
+				utils.debugLog("Setting EXACT Alarm for a single run");
+
+				am.setExact(AlarmManager.RTC_WAKEUP, calendar.getTimeInMillis(), sender);
+			}
+			else {
+
+				utils.debugLog("Setting Alarm for a single run");
+
+				am.set(AlarmManager.RTC_WAKEUP, calendar.getTimeInMillis(), sender);	
+			}
 		}
 			
 		utils.infoLog("Alarm Service Request Created");	

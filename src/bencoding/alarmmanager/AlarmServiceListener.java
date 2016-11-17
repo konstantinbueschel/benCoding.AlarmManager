@@ -6,11 +6,17 @@
  */
 package bencoding.alarmmanager;
 
+import java.util.Calendar;
+import java.util.Date;
+import java.util.GregorianCalendar;
+import java.text.SimpleDateFormat;
 
 import org.appcelerator.titanium.TiApplication;
 
+import android.app.AlarmManager;
 import android.app.ActivityManager;
 import android.app.ActivityManager.RunningServiceInfo;
+import android.app.PendingIntent;
 
 import android.content.BroadcastReceiver;
 import android.content.Context;
@@ -43,9 +49,12 @@ public class AlarmServiceListener  extends BroadcastReceiver {
     
     boolean forceRestart = bundle.getBoolean("alarm_service_force_restart",false);
     boolean hasInterval = bundle.getBoolean("alarm_service_has_interval",false);
-    boolean shouldWakeUp = bundle.getBoolean("should_wake_up", false);
+    boolean shouldWakeUp = bundle.getBoolean("alarm_service_should_wake_up", false);
+    boolean deliverExact = bundle.getBoolean("alarm_service_deliver_exact", false);
 
-    utils.debugLog("RequestCode: " + bundle.getInt("notification_request_code"));
+    utils.debugLog("Request code: " + bundle.getInt("alarm_service_request_code"));
+    utils.debugLog("Should wake up: " + shouldWakeUp);
+    utils.debugLog("Deliver exact: " + deliverExact);
     utils.debugLog("Full Service Name: " + fullServiceName);
 
     if (this.isServiceRunning(context,fullServiceName)) {
@@ -83,6 +92,7 @@ public class AlarmServiceListener  extends BroadcastReceiver {
       serviceIntent.putExtra("interval", bundle.getLong("alarm_service_interval", 45*60*1000L)); // Default to 45mins
     }
     
+    serviceIntent.putExtra("alarm_service_request_code", bundle.getInt("alarm_service_request_code"));
     serviceIntent.putExtra("customData",bundle.getString("customData","[]"));
     
     context.startService(serviceIntent);
@@ -99,5 +109,73 @@ public class AlarmServiceListener  extends BroadcastReceiver {
     }
         
     utils.infoLog("Alarm service should now be running");
+
+    if (bundle.getLong("alarm_service_repeat_ms", 0) > 0) {
+        
+      createRepeatService(bundle);
+    }
+  }
+
+  private void createRepeatService(Bundle bundle) {
+
+    Intent intent = new Intent(TiApplication.getInstance().getApplicationContext(), AlarmServiceListener.class);
+      
+    // use the same extras as the original service
+    intent.putExtras(bundle);
+
+    // update date and time by repeat interval (in milliseconds)
+    int day = bundle.getInt("alarm_service_day");
+    int month = bundle.getInt("alarm_service_month");
+    int year = bundle.getInt("alarm_service_year");
+    int hour = bundle.getInt("alarm_service_hour");
+    int minute = bundle.getInt("alarm_service_minute");
+    int second = bundle.getInt("alarm_service_second");
+    
+    boolean deliverExact = bundle.getBoolean("alarm_service_deliver_exact", false);
+
+    Calendar cal = new GregorianCalendar(year, month, day);
+    
+    cal.add(Calendar.HOUR_OF_DAY, hour);
+    cal.add(Calendar.MINUTE, minute);
+    cal.add(Calendar.SECOND, second);
+
+    Calendar now = Calendar.getInstance();
+        
+    long repeatInMs = bundle.getLong("alarm_service_repeat_ms", 0);
+    int repeatInS = (int)repeatInMs / 1000;
+
+    // add frequence until cal > now
+    while (now.getTimeInMillis() > cal.getTimeInMillis()) {
+      
+      cal.add(Calendar.SECOND, repeatInS);
+    }
+
+    int requestCode = bundle.getInt("alarm_service_request_code", AlarmmanagerModule.DEFAULT_REQUEST_CODE);
+
+    long triggerAtMillis = cal.getTimeInMillis();
+
+    Date date = new Date(triggerAtMillis);
+    String DATE_FORMAT = "yyyy-MM-dd HH:mm:ss";
+    SimpleDateFormat sdf = new SimpleDateFormat(DATE_FORMAT);
+    
+    utils.infoLog("Creating alarm service repeat for: "  + sdf.format(date));
+
+    // create the Alarm Manager
+    AlarmManager alarmManager = (AlarmManager) TiApplication.getInstance().getApplicationContext().getSystemService(TiApplication.ALARM_SERVICE);
+
+    PendingIntent sender = PendingIntent.getBroadcast(TiApplication.getInstance().getApplicationContext(), requestCode, intent,  PendingIntent.FLAG_UPDATE_CURRENT);
+
+    if (android.os.Build.VERSION.SDK_INT >= 19 && deliverExact) {
+
+        utils.debugLog("Setting EXACT alarm service repeat");
+
+        alarmManager.setExact(AlarmManager.RTC_WAKEUP, triggerAtMillis, sender);
+    }
+    else {
+
+        utils.debugLog("Setting alarm service repeat");
+
+        alarmManager.set(AlarmManager.RTC_WAKEUP, triggerAtMillis, sender);    
+    }
   }
 }
